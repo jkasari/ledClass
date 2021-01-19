@@ -7,7 +7,7 @@ void setup() {
   strip.setBrightness(255);
   strip.clear();
   strip.show();
-//  startUp();
+  startUp();
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
 }
@@ -38,17 +38,17 @@ void loop() {
   //manipulated or used in actual logic of a display.
   
   switch(lightShow) {
-   case 2:
+   case 1:
     lightAll(on, brightnessStand);
     on = true;
     break;
-   case 3:
+   case 2:
     //Number of leds to randomly flicker, not the size of the area you want them in. 
     //The last variable is the speed of the flickering. 
     randColorFlicker(on, brightnessStand, LED_COUNT, 0); 
     on = true;
     break;
-   case 1:
+   case 3:
     flame(on, brightnessStand, LED_COUNT, 30);
     on = true;
     break;
