@@ -38,6 +38,7 @@ public:
     location = 0;
     colorCode = 1;
     brightness = 255;
+    rateOfChange = 1;
     brightnessDir = true;
   }
   led(int32_t location, uint8_t colorCode, uint8_t brightness,
@@ -77,6 +78,12 @@ public:
   uint8_t getBrightVal();
   uint8_t getColorCode();
 
+  //This sets the |rateOfChange|.
+  void setRateOfChange(uint8_t newRate);
+
+  //This gives you the |rateOfChange|.
+  uint8_t getRateOfChange(void);
+
   // This changes the bool value in a |led|, aka the direction of movement of
   // that |led|.
   setBrightnessDir(bool);
@@ -87,6 +94,7 @@ private:
   uint8_t colorCode;
   uint32_t color;
   uint8_t brightness;
+  uint8_t rateOfChange;
   bool brightnessDir;
 };
 
@@ -184,6 +192,11 @@ uint8_t led::getColorCode(void) { return colorCode; }
 
 uint8_t led::getBrightVal(void) { return brightness; }
 
+void led::setRateOfChange(uint8_t newRate) { rateOfChange = newRate; }
+
+uint8_t led::getRateOfChange(void) { return rateOfChange; }
+
+
 led::setBrightnessDir(bool upOrDown) {
   if (upOrDown) {
     brightnessDir = true;
@@ -203,23 +216,25 @@ bool led::getBrightnessDir(void) {
 
 //==============================================================buttonCheck
 
+#define BUTTON_PRESSED HIGH //LOW
+
 // checks to see the current state of all the possible button presses
 void buttonCheck(bool &on, uint8_t &brightnessStand) {
-  if (digitalRead(button1) == HIGH && digitalRead(button2) == HIGH) {
+  if (digitalRead(button1) == BUTTON_PRESSED && digitalRead(button2) == BUTTON_PRESSED) {
     delay(500);
-    if (digitalRead(button1) == HIGH && digitalRead(button2) == HIGH) {
+    if (digitalRead(button1) == BUTTON_PRESSED && digitalRead(button2) == BUTTON_PRESSED) {
       on = false;
     }
   }
 
-  if (digitalRead(button1) == HIGH) {
+  if (digitalRead(button1) == BUTTON_PRESSED) {
     delay(50);
     brightnessStand += 5;
     if (brightnessStand >= 250) {
       brightnessStand = 250;
     }
   }
-  if (digitalRead(button2) == HIGH) {
+  if (digitalRead(button2) == BUTTON_PRESSED) {
     delay(50);
     brightnessStand -= 5;
     if (brightnessStand < 20) {
@@ -365,11 +380,12 @@ void randColorFlicker(bool &on, uint8_t &brightnessStand, uint32_t ledArrSize) {
   randomArrMaker(LED_COUNT, randomArr);
 
   uint32_t cycle = 0;
-  uint32_t flickRate;
+  uint32_t flickRate = 7;
 
   // go through the led array and randomly choose color/location/direction
   for (int i = 0; i < ledArrSize; ++i) {
     ledArr[i].setLocation(randomArr[i]);
+    ledArr[i].setRateOfChange(random(1, 12));
     ledArr[i].setColor(random(1, 8), random(250));
     if ((i % 2) == 1) {
       ledArr[i].setBrightnessDir(true);
@@ -387,7 +403,7 @@ void randColorFlicker(bool &on, uint8_t &brightnessStand, uint32_t ledArrSize) {
         int brightness = ledArr[i].getBrightVal();
         // check direction to see if the led needs to increase in brightness
         if (ledArr[i].getBrightnessDir()) {
-          ledArr[i].increaseBrightness(1);
+          ledArr[i].increaseBrightness(ledArr[i].getRateOfChange());
           if (ledArr[i].getBrightVal() >= 255) {
             ledArr[i].setBrightnessDir(false);
           }
@@ -395,9 +411,10 @@ void randColorFlicker(bool &on, uint8_t &brightnessStand, uint32_t ledArrSize) {
         }
         // check direction to see if the led needs to decrease in brightness
         if (!ledArr[i].getBrightnessDir()) {
-          ledArr[i].decreaseBrightness(1);
+          ledArr[i].decreaseBrightness(ledArr[i].getRateOfChange());
           if (ledArr[i].getBrightVal() <= 0) {
             ledArr[i].setBrightnessDir(true);
+            ledArr[i].setRateOfChange(random(1, 5));
             // check to make sure the new location isn't occupied by another led
             int newRandLoc = random(LED_COUNT);
             int y = 0;
@@ -409,18 +426,13 @@ void randColorFlicker(bool &on, uint8_t &brightnessStand, uint32_t ledArrSize) {
               }
               y++;
             }
-            ledArr[i].setColor(random(1, 8), brightness);
+            ledArr[i].setColor(random(1, 12), brightness);
             ledArr[i].setLocation(newRandLoc);
           }
           ledArr[i].ledUpdate();
         }
       }
       strip.show();
-      if (brightnessStand < 40) {
-        flickRate = 800;
-      } else {
-        flickRate = 10;
-      }
     }
     buttonCheck(on, brightnessStand);
     delay(1);
@@ -527,7 +539,7 @@ void flame(bool &on, uint8_t &brightnessStand, uint32_t pixelNum) {
       if (brightnessStand < 40) {
         flickSpeed = 160;
       } else {
-        flickSpeed = 50;
+        flickSpeed = 35;
       }
     }
     buttonCheck(on, brightnessStand);
@@ -844,11 +856,11 @@ void cometTail(led cometHead, int32_t cometSize) {
 
 void stars(bool &on, uint8_t &brightnessStand) {
   uint32_t cycle = 0;
-  int32_t count = 25;
+  int32_t count = 35;
   uint8_t highPeakTop = 200;
   uint8_t highPeakBottom = 100;
-  uint8_t lowPeakTop = 80;
-  uint8_t lowPeakBottom = 70;
+  uint8_t lowPeakTop = 90;
+  uint8_t lowPeakBottom = 80;
   uint8_t valleyTop = 50;
   uint8_t valleyBottom = 40;
   uint8_t twinkleStar1 = 1;
@@ -924,12 +936,12 @@ void stars(bool &on, uint8_t &brightnessStand) {
           cometHeadLoc--;
         }
         if (cometClock == cometDuration) {
-          cometCount = random(20000, 35000);
+          cometCount = random(800, 1300);
           cometClock = 0;
           cometDuration = random(4, 8);
           cometHead.setBrightnessDir(random(2));
           if (cometHead.getBrightnessDir()) {
-            cometHeadLoc = (2, 8);
+            cometHeadLoc = random(2, 8);
           } else {
             cometHeadLoc = random(LED_COUNT - 8, LED_COUNT - 2);
           }
@@ -938,7 +950,7 @@ void stars(bool &on, uint8_t &brightnessStand) {
     }
     buttonCheck(on, brightnessStand);
     strip.show();
-    delay(2);
+    delay(1);
     cycle++;
   }
 }

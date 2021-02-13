@@ -1,5 +1,3 @@
-
-
 void setup() {
   Serial.begin(9600);
   randomSeed(analogRead(0));
@@ -43,7 +41,7 @@ void loop() {
   case 2:
     // Number of leds to randomly flicker, not the size of the area you want
     // them in.
-    randColorFlicker(on, brightnessStand, LED_COUNT);
+    randColorFlicker(on, brightnessStand, LED_COUNT / 3);
     break;
   case 3:
     flame(on, brightnessStand, LED_COUNT);
