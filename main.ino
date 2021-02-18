@@ -5,7 +5,7 @@ void setup() {
   strip.setBrightness(255);
   strip.clear();
   strip.show();
-//  startUp(8); //8 is soft white on the color code index.
+  startUp(8); //8 is soft white on the color code index.
   pinMode(button1, INPUT);
   pinMode(button2, INPUT);
 }
@@ -35,7 +35,7 @@ void loop() {
   // logic of a display.
 
   switch (lightShow) {
-  case 7:
+  case 1:
     lightAll(on, brightnessStand, 8);
     break;
   case 2:
@@ -55,7 +55,7 @@ void loop() {
   case 6:
     stars(on, brightnessStand);
     break;
-  case 1:
+  case 7:
     //underConstruction
     rainDrops(on, brightnessStand);
     lightShow = 0;
