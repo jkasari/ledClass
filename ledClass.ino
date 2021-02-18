@@ -958,6 +958,13 @@ void stars(bool &on, uint8_t &brightnessStand) {
 
 //==============================================================stars
 
+
+void rainStormBackground(void) {
+  for (int i = 0; i < LED_COUNT - 1; ++i) {
+    strip.setPixelColor(i, 0, 0, 20);
+  }
+}
+
 class Drop {
 
  public:
@@ -988,13 +995,14 @@ class Drop {
   void ripplePhase4(void);
   void ripplePhase5(void);
   void ripplePhase6(void);
+  void endingPhase(void);
   uint32_t center;
-  uint8_t rippleState = 0;
+  uint8_t rippleState = 30;
   uint8_t ripplePhase = 0;
-  uint8_t rippleSpeedFast = 13;
-  uint8_t rippleSpeedSlow = 8;
+  const uint8_t rippleSpeedFast = 10;
+  const uint8_t rippleSpeedSlow = 4;
   uint8_t rippleSpeed = random(rippleSpeedSlow, rippleSpeedFast);
-  bool currentlyRippling;
+  bool currentlyRippling = true;
 
 };
 
@@ -1017,6 +1025,9 @@ void Drop::ripple(void) {
     break;
    case 5:
     ripplePhase6();
+    break;
+   case 6:
+    endingPhase();
     break;
  }
 }
@@ -1044,14 +1055,14 @@ void Drop::setRippleSpeed(void) {
 void Drop::increasePhase(uint8_t stateMax) {
   if(rippleState >= stateMax) {
     ripplePhase += 1;
-    rippleState = 0;
+    rippleState = 30;
   }
 }
 
 void Drop::ripplePhase1(void){
   currentlyRippling = true;
   strip.setPixelColor(center, 0, 0, rippleState);
-  rippleState += rippleSpeed;
+  rippleState += rippleSpeed * 2;
   increasePhase(200);
 }
 
@@ -1065,45 +1076,52 @@ void Drop::ripplePhase2(void) {
 
 void Drop::ripplePhase3(void) {
   strip.setPixelColor(center - 1, 25 - rippleState / 2, 25 - rippleState / 2, 50 + rippleState * 2);
-  strip.setPixelColor(center, 0, 0, 250 - rippleState * 2);
+  strip.setPixelColor(center, 0, 0, 250 - rippleState);
   strip.setPixelColor(center + 1, 25 - rippleState / 2, 25 - rippleState / 2 , 50 + rippleState * 2);
   rippleState += rippleSpeed;
   increasePhase(50);
 }
 
 void Drop::ripplePhase4(void) {
-  strip.setPixelColor(center - 1, 0, 0, 150 + rippleState);
-  strip.setPixelColor(center, 0, 0, 150 - rippleState * 2);
-  strip.setPixelColor(center + 1, 0, 0, 150 + rippleState);
-  rippleState += rippleSpeed;
+  strip.setPixelColor(center - 1, 0, 0, 150);
+  strip.setPixelColor(center, 0, 0, 200);
+  strip.setPixelColor(center + 1, 0, 0, 150);
+  rippleState += rippleSpeed / 2;
   increasePhase(50);
 }
 
 void Drop::ripplePhase5(void) {
-  strip.setPixelColor(center - 1, 0, 0, 200 - rippleState);
-  strip.setPixelColor(center + 1, 0, 0, 200 - rippleState);
+  strip.setPixelColor(center - 1, 0, 0, 150 - rippleState / 3);
+  strip.setPixelColor(center, 0, 0, 200 - rippleState);
+  strip.setPixelColor(center + 1, 0, 0, 150 - rippleState / 3);
   rippleState += rippleSpeed;
   increasePhase(150);
 }
 
 void Drop::ripplePhase6(void) {
-  if(rippleState >= 40) {
-  strip.setPixelColor(center - 1, 0, 0, 50 - rippleState);
-  strip.setPixelColor(center + 1, 0, 0, 50 - rippleState);
-  rippleState += rippleSpeed;
-  increasePhase(50);
-  } else {
-     currentlyRippling = false;
-     ripplePhase = 0;
-  }
+  strip.setPixelColor(center - 1, 0, 0, 100 - rippleState);
+  strip.setPixelColor(center, 0, 0, 50 - rippleState / 2);
+  strip.setPixelColor(center + 1, 0, 0, 100 - rippleState);
+  rippleState += rippleSpeed / 4;
+  increasePhase(70);
+}
+
+void Drop::endingPhase(void) {
+    if(rippleState == 33) {
+      ripplePhase = 0;
+    }
+    currentlyRippling = false;
+    rippleState += 1;
 }
 
 
 void rainDrops(bool &on, uint8_t &brightnessStand) {
   uint32_t cycle = 0;
   uint8_t count = 7;
-  uint8_t dropCount = LED_COUNT / 4;
+  uint8_t dropCount = LED_COUNT / 5;
   uint32_t newRandLoc;
+  uint32_t locationLower = 2;
+  uint32_t locationUpper = LED_COUNT - 2;
  
   
   Drop drizzle[dropCount];
@@ -1114,20 +1132,19 @@ void rainDrops(bool &on, uint8_t &brightnessStand) {
   while(on) {
     if(cycle % count == 0) {
       strip.clear();
+      rainStormBackground();
       for(int i = 0; i < 4; ++i) {
       drizzle[i].ripple();
         if(!drizzle[i].isRippling()) {
-          newRandLoc = random(LED_COUNT);
+          newRandLoc = random(locationLower, locationUpper);
           // Loop is supposed to stop any drops from starting where a current drop is. 
           // However it appears not to be working.
           int y = 0;
-          while(y < dropCount) {
-            if(newRandLoc > drizzle[y].getCenter() - 2 && drizzle[y].getCenter() + 2 > newRandLoc) {
-               newRandLoc = random(LED_COUNT);
+          for(int y = 0; y < dropCount; ++y) {
+            if(newRandLoc > drizzle[y].getCenter() - 3 && drizzle[y].getCenter() + 3 > newRandLoc) {
+               newRandLoc = random(locationLower, locationUpper);
                y = 0;
-               continue;
             }
-            y++;
           }
           drizzle[i].setCenter(newRandLoc);
           drizzle[i].setRippleSpeed();
