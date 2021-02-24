@@ -159,7 +159,7 @@ led::setColor(uint8_t clrcd, uint8_t brtlvl) {
     break;
   case 8:
     // Soft white for the actual lamp function of the lamp.
-    color = strip.Color(brightness, brightness, brightness / 2);
+    color = strip.Color(brightness / 2, brightness, 0);
     break;
   case 9:
     // Blue ish white for the stars function.
