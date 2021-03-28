@@ -159,7 +159,7 @@ led::setColor(uint8_t clrcd, uint8_t brtlvl) {
     break;
   case 8:
     // Soft white for the actual lamp function of the lamp.
-    color = strip.Color(brightness, brightness, brightness / 2);
+    color = strip.Color(brightness / 2, brightness, 0);
     break;
   case 9:
     // Blue ish white for the stars function.
@@ -362,84 +362,139 @@ void randomPopNVac(bool on, uint8_t &brightness, uint32_t pixelNum, int DELAY) {
 
 // slowly turns on and off leds at a random location and color
 // takes a bool to turn on the loop
-// |ledArrSize| dictates how many leds to flicker
-// |flickRate| is the rate at which they flicker
-void randColorFlicker(bool &on, uint8_t &brightnessStand, uint32_t ledArrSize) {
-
-  // check to make sure that you are not overloading the pixel strip
-  // if you do it will just light one led as an indication you are feeding it to
-  // big a number
-  if (ledArrSize >= LED_COUNT) {
-    ledArrSize = LED_COUNT - 1;
-  }
-
-  // create an array of |led|s and an array of random locations for those |led|s
-  // to go.
-  led ledArr[ledArrSize];
-  uint32_t randomArr[LED_COUNT];
-  randomArrMaker(LED_COUNT, randomArr);
-
-  uint32_t cycle = 0;
-  uint32_t flickRate = 7;
-
-  // go through the led array and randomly choose color/location/direction
-  for (int i = 0; i < ledArrSize; ++i) {
-    ledArr[i].setLocation(randomArr[i]);
-    ledArr[i].setRateOfChange(random(1, 12));
-    ledArr[i].setColor(random(1, 8), random(250));
-    if ((i % 2) == 1) {
-      ledArr[i].setBrightnessDir(true);
-    } else {
-      ledArr[i].setBrightnessDir(false);
-    }
-  }
-
-  // cycle through the led array and flicker the leds
-  while (on) {
-    if (cycle % flickRate == 0) {
-      strip.clear();
-      for (int i = 0; i < ledArrSize; ++i) {
-        int color = ledArr[i].getColorCode();
-        int brightness = ledArr[i].getBrightVal();
-        // check direction to see if the led needs to increase in brightness
-        if (ledArr[i].getBrightnessDir()) {
-          ledArr[i].increaseBrightness(ledArr[i].getRateOfChange());
-          if (ledArr[i].getBrightVal() >= 255) {
-            ledArr[i].setBrightnessDir(false);
-          }
-          ledArr[i].ledUpdate();
-        }
-        // check direction to see if the led needs to decrease in brightness
-        if (!ledArr[i].getBrightnessDir()) {
-          ledArr[i].decreaseBrightness(ledArr[i].getRateOfChange());
-          if (ledArr[i].getBrightVal() <= 0) {
-            ledArr[i].setBrightnessDir(true);
-            ledArr[i].setRateOfChange(random(1, 5));
-            // check to make sure the new location isn't occupied by another led
-            int newRandLoc = random(LED_COUNT);
-            int y = 0;
-            while (y < ledArrSize) {
-              if (newRandLoc == ledArr[y].getLocation()) {
-                newRandLoc = random(LED_COUNT);
-                y = 0;
-                continue;
-              }
-              y++;
-            }
-            ledArr[i].setColor(random(1, 12), brightness);
-            ledArr[i].setLocation(newRandLoc);
-          }
-          ledArr[i].ledUpdate();
-        }
+// |numOfDots| dictates how many leds to flicker
+class randDot {
+  
+  public:
+    // cycles a |randDot| from off to on then back to off.
+    // Each time it reaches a 0 value, it will change its color. 
+    // The location will stay the same.
+    void flicker(void) {
+      if (fadeDir) {
+        increaseBrightness();
+      } else {
+        decreaseBrightness();
       }
-      strip.show();
+      strip.setPixelColor(
+        location,
+        red * brightness / 255,
+        green * brightness / 255,
+        blue * brightness / 255
+      );
+      if (brightness > 250) {
+        fadeDir = false;
+      }
+      if (brightness == 0) {
+        fadeDir = true;
+        readyToMove = true;
+        fadeRate = random(5);
+        changeColor();
+      }
     }
-    buttonCheck(on, brightnessStand);
-    delay(1);
-    cycle++;
+
+    // This sets the location of the |randDrop|.
+    void setLocation(uint32_t newLocation) {
+      location = newLocation;
+      readyToMove = false;
+    }
+
+    // This tells you the location of a |randDot|.
+    uint32_t getLocation(void) {
+      return location;
+    }
+
+    // Tells you if the |randDot| is at a 0 value and ready to change location.
+    bool isReadyToMove(void) {
+      return readyToMove;
+    }
+  
+
+  private:
+
+    // Finds a new color for a |randDot|.
+    void changeColor(void) {
+      red = random(255);
+      green - random(255);
+      blue = random(255);
+    }
+
+    // Increases the brightness of a |randDot|.
+    void increaseBrightness(void) {
+      brightness += fadeRate;
+      if(brightness > 255) {
+        brightness = 255;
+      }
+    }
+
+    // Decreases the brightness of a |randDot|.
+    void decreaseBrightness(void) {
+      brightness -= fadeRate;
+      if(brightness < 3) {
+        brightness = 0;
+      }
+    }
+  
+    bool readyToMove = false;
+    bool fadeDir = true;
+    uint8_t red = random(255);
+    uint8_t green = random(255);
+    uint8_t blue = random(255);
+    uint8_t brightness = 0;
+    uint8_t fadeRate = random(5);
+    uint32_t location = 0;
+  
+};
+
+
+uint32_t findNewLocation(uint32_t* randDotLocations, uint32_t numOfDots) {
+    uint32_t newRandLoc = random(LED_COUNT);
+    uint32_t y = 0;
+    while (y < numOfDots) {
+      if (newRandLoc == randDotLocations[y]) {
+      newRandLoc = random(LED_COUNT);
+      y = 0;
+      continue;
+    }
+    y++;
   }
+  return newRandLoc;
 }
 
+void flickerRandDots(bool &on, uint8_t &brightnessStand, uint32_t numOfDots) {
+
+  if (numOfDots >= LED_COUNT) {
+    numOfDots = LED_COUNT - 1;
+  }
+  
+  uint32_t count = 0;
+  uint8_t timer = 10;
+  uint32_t randomArr[LED_COUNT];
+  uint32_t randDotLocations[numOfDots];
+  randomArrMaker(LED_COUNT, randomArr);
+  randDot randDotArr[numOfDots];
+
+  for(int i = 0; i < numOfDots; ++i) {
+    randDotArr[i].setLocation(randomArr[i]);
+    randDotLocations[i] = randDotArr[i].getLocation();
+  }
+
+  while(on) {
+    if(count % timer == 0) {
+      strip.clear();
+      for(int i = 0; i < numOfDots; ++i) {
+        randDotArr[i].flicker();
+        if(randDotArr[i].isReadyToMove()) {
+          randDotArr[i].setLocation(findNewLocation(randDotLocations, numOfDots));  
+          randDotLocations[i] = randDotArr[i].getLocation();
+        }
+      }
+    }
+    strip.show();
+    delay(1);
+    count++;
+    buttonCheck(on, brightnessStand);
+  }
+}
 //==============================================================fadeOnOff
 
 void fadeOnOff(uint8_t colorCode, uint8_t fadeRate, uint8_t brightnessMax) {
@@ -956,7 +1011,7 @@ void stars(bool &on, uint8_t &brightnessStand) {
 }
 
 
-//==============================================================stars
+//==============================================================rainstorm
 
 
 void rainStormBackground(void) {
@@ -1062,13 +1117,13 @@ void Drop::increasePhase(uint8_t stateMax) {
 void Drop::ripplePhase1(void){
   currentlyRippling = true;
   strip.setPixelColor(center, 0, 0, rippleState);
-  rippleState += rippleSpeed * 2;
+  rippleState += rippleSpeed;
   increasePhase(200);
 }
 
 void Drop::ripplePhase2(void) {
   strip.setPixelColor(center - 1, rippleState / 2, rippleState / 2, rippleState);
-  strip.setPixelColor(center, 0, 0, 200 + rippleState);
+  strip.setPixelColor(center, 0, 0, 200);
   strip.setPixelColor(center + 1, rippleState / 2, rippleState / 2, rippleState);
   rippleState += rippleSpeed;
   increasePhase(50);
@@ -1076,7 +1131,7 @@ void Drop::ripplePhase2(void) {
 
 void Drop::ripplePhase3(void) {
   strip.setPixelColor(center - 1, 25 - rippleState / 2, 25 - rippleState / 2, 50 + rippleState * 2);
-  strip.setPixelColor(center, 0, 0, 250 - rippleState);
+  strip.setPixelColor(center, 0, 0, 200);
   strip.setPixelColor(center + 1, 25 - rippleState / 2, 25 - rippleState / 2 , 50 + rippleState * 2);
   rippleState += rippleSpeed;
   increasePhase(50);
@@ -1091,19 +1146,19 @@ void Drop::ripplePhase4(void) {
 }
 
 void Drop::ripplePhase5(void) {
-  strip.setPixelColor(center - 1, 0, 0, 150 - rippleState / 3);
+  strip.setPixelColor(center - 1, 0, 0, 150 - rippleState);
   strip.setPixelColor(center, 0, 0, 200 - rippleState);
-  strip.setPixelColor(center + 1, 0, 0, 150 - rippleState / 3);
+  strip.setPixelColor(center + 1, 0, 0, 150 - rippleState);
   rippleState += rippleSpeed;
-  increasePhase(150);
+  increasePhase(100);
 }
 
 void Drop::ripplePhase6(void) {
-  strip.setPixelColor(center - 1, 0, 0, 100 - rippleState);
-  strip.setPixelColor(center, 0, 0, 50 - rippleState / 2);
-  strip.setPixelColor(center + 1, 0, 0, 100 - rippleState);
+  strip.setPixelColor(center - 1, 0, 0, 50 - rippleState);
+  strip.setPixelColor(center, 0, 0, 100 - rippleState / 2);
+  strip.setPixelColor(center + 1, 0, 0, 50 - rippleState);
   rippleState += rippleSpeed / 4;
-  increasePhase(70);
+  increasePhase(50);
 }
 
 void Drop::endingPhase(void) {
@@ -1146,6 +1201,7 @@ void rainDrops(bool &on, uint8_t &brightnessStand) {
                y = 0;
             }
           }
+          y = 0;
           drizzle[i].setCenter(newRandLoc);
           drizzle[i].setRippleSpeed();
         }
