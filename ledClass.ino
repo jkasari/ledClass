@@ -12,6 +12,9 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
 
 class led {
 
+  // This started as a way for me to learn how to make classes in c/c++. It is now a functioning lamp!
+  // I'm currently going back through all of the functions and giving them their own unique classes.
+
   // Welcome to the |led| class!
   //|led|'s each have 4 data memebers: loaction, colorCode, brightness,
   // brightnessDir.
@@ -616,9 +619,9 @@ class FlameDot {
 };
 
 
-void Flame(bool &on, uint8_t &brightnessStand, uint32_t pixelNum) {
+void Flame(bool &on, uint8_t &brightnessStand) {
   uint32_t count = 0;
-  uint32_t rate = 10;
+  uint32_t rate = 7;
   
   FlameDot flameArray[LED_COUNT];
   for(int i = 0; i < LED_COUNT; ++i) {
