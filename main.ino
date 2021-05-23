@@ -44,7 +44,7 @@ void loop() {
     flickerRandDots(on, brightnessStand, LED_COUNT / 2);
     break;
   case 3:
-    Flame(on, brightnessStand, LED_COUNT);
+    Flame(on, brightnessStand);
     break;
   case 4:
     lavaLamp(on, brightnessStand);

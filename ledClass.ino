@@ -12,26 +12,8 @@ Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_RGB + NEO_KHZ800);
 
 class led {
 
-  // Welcome to the |led| class!
-  //|led|'s each have 4 data memebers: loaction, colorCode, brightness,
-  // brightnessDir.
-  //             Cool Stuff about the class,
-  //|brightnessDir| allows the |led| to "remember" which stateection it is
-  // currently going. Whether this be a direction of brightness or a location.
-  //|colorCode| only takes a signle uint8_t to decide the color, it does the
-  // rest of the work for you. And allows you to change your color library
-  // indepent of any display that uses it. The class has built it gaurds for
-  // locations. This way you can feed the led any location and it will always
-  // show up on the strip. This works for |setLocation| and |movePos|. COLOR
-  // CODE 0 = white, 1 = red, 2 = green, 3 = blue, 4 = yellow, 5 = teal, 6 =
-  // purple, 7 = orangy, 8 = softWhite.
-  //             Dumb stuff that I need to fix,
-  //|ledUpDate| builds and lights its own led in adafruits strip library. As a
-  // result |ledUpDate| needs to be called for EVERY function in the class.
-  // EXCEPT for |setColor|, why?? I have no clue, something about the switch
-  // statement does not like calling |ledUpDate|. So if you call |setColor| you
-  // need to either call |ledUpDate| or another function in the class after
-  // calling |setColor|.
+  // This started as a way for me to learn how to make classes in c/c++. It is now a functioning lamp!
+  // I'm currently going back through all of the functions and giving them their own unique classes.
 
 public:
   led() {
@@ -616,10 +598,10 @@ class FlameDot {
 };
 
 
-void Flame(bool &on, uint8_t &brightnessStand, uint32_t pixelNum) {
+void Flame(bool &on, uint8_t &brightnessStand) {
   uint32_t count = 0;
-  uint32_t rate = 10;
-  
+  uint32_t rate = 7;
+
   FlameDot flameArray[LED_COUNT];
   for(int i = 0; i < LED_COUNT; ++i) {
     flameArray[i].setLocation(i);
