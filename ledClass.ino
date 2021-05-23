@@ -368,7 +368,7 @@ class randDot {
   public:
     // cycles a |randDot| from off to on then back to off.
     // Each time it reaches a 0 value, it will change its color. 
-    // The location will stay the same.
+    // The location will stay the same unless specified otherwise.
     void flicker(void) {
       if (fadeDir) {
         increaseBrightness();
@@ -497,13 +497,13 @@ void flickerRandDots(bool &on, uint8_t &brightnessStand, uint32_t numOfDots) {
 }
 //==============================================================fadeOnOff
 
-void fadeOnOff(uint8_t colorCode, uint8_t fadeRate, uint8_t brightnessMax) {
+void fadeOnOff(uint8_t colorCode, uint8_t fadeRate, uint8_t brightnessMin, uint8_t brightnessMax) {
 
   if (brightnessMax > 255) {
     brightnessMax = 255;
   }
 
-  uint8_t brightness = 0;
+  uint8_t brightness = brightnessMin;
   led ledToFade(0, colorCode, brightness, true);
 
   while (brightness < brightnessMax) {
@@ -516,7 +516,7 @@ void fadeOnOff(uint8_t colorCode, uint8_t fadeRate, uint8_t brightnessMax) {
     brightness += 5;
     strip.show();
   }
-  while (brightness > 0) {
+  while (brightness > brightnessMin) {
     for (int i = 0; i < LED_COUNT; ++i) {
       ledToFade.setLocation(i);
       ledToFade.setColor(colorCode, brightness);
@@ -530,76 +530,111 @@ void fadeOnOff(uint8_t colorCode, uint8_t fadeRate, uint8_t brightnessMax) {
 
 void startUp(uint32_t colorCode) {
 
-  fadeOnOff(colorCode, 0, 90);
-  fadeOnOff(colorCode, 0, 100);
+  fadeOnOff(colorCode, 5, 50, 90);
+  fadeOnOff(colorCode, 8, 70, 100);
   delay(30);
-  fadeOnOff(colorCode, 3, 120);
+  fadeOnOff(colorCode, 6, 80, 120);
   delay(50);
-  fadeOnOff(colorCode, 0, 200);
+  fadeOnOff(colorCode, 4, 100, 200);
   delay(300);
-  fadeOnOff(colorCode, 2, 100);
+  fadeOnOff(colorCode, 8, 70, 100);
   lightAll(colorCode);
   delay(colorCode);
-  fadeOnOff(colorCode, 3, 255);
+  fadeOnOff(colorCode, 3, 100, 255);
   lightAll(colorCode);
 }
 
 //==============================================================Flame
 
-// flickers the strip in verying shades of red and orange
-void flame(bool &on, uint8_t &brightnessStand, uint32_t pixelNum) {
-  if (pixelNum > LED_COUNT) {
-    pixelNum = LED_COUNT - 1;
-  }
+class FlameDot {
 
-  led ledArr[pixelNum];
-  uint32_t randomArr[LED_COUNT];
-  randomArrMaker(LED_COUNT, randomArr);
+  public:
 
-  uint32_t cycle = 0;
-  uint32_t flickSpeed = 50;
-
-  for (int i = 0; i < pixelNum; ++i) {
-    if (i < 10) {
-      ledArr[i].setColor(1, random(100, 255));
-      ledArr[i].setLocation(randomArr[i]);
-      ledArr[i].setBrightnessDir(true);
-    } else {
-      ledArr[i].setColor(7, random(100, 255));
-      ledArr[i].setLocation(randomArr[i]);
-      ledArr[i].setBrightnessDir(false);
+    setLocation(uint32_t setLocation) {
+      location = setLocation;
+      bounceUp();
     }
-  }
 
-  while (on) {
-    if (cycle % flickSpeed == 0) {
-      strip.clear();
-      for (int i = 0; i < pixelNum; i++) {
-        if (ledArr[i].getBrightnessDir()) {
-          ledArr[i].increaseBrightness(random(25));
-          if (ledArr[i].getBrightVal() >= random(150, 255)) {
-            ledArr[i].setBrightnessDir(false);
-          }
-          ledArr[i].ledUpdate();
-        }
-        if (!ledArr[i].getBrightnessDir()) {
-          ledArr[i].decreaseBrightness(random(25));
-          if (ledArr[i].getBrightVal() <= random(20, 60)) {
-            ledArr[i].setBrightnessDir(true);
-          }
-          ledArr[i].ledUpdate();
-        }
-      }
-      strip.show();
-      if (brightnessStand < 40) {
-        flickSpeed = 160;
+    void flicker(void) {
+      if (tickerDir) {
+        increaseBrightness();
+        bounceDown();
       } else {
-        flickSpeed = 35;
+        decreaseBrightness();
+        bounceUp();
+      }
+      displayDot();
+    }
+
+  private:
+    // Changes the dot from decreasing in brightness to increasing.
+    // It first checks to make sure the dot has reached it's low limit and is moving downward. 
+    // It will then either asign it a high value or a low value.
+    void bounceUp(void) {
+      if(ticker <= lowLimit) {
+        tickerDir = true;
+        lowLimit = random(15, 35);
+        //This is how many times we are going to divde the red value by. This is not the 8bit RGB value.
+        orangeVal = random(4, 8);
+        uint8_t hotOrNot = random(100);
+        if (hotOrNot < 20) {
+          highLimit = random(150, 250);
+          tickerRate = random(3, 5);
+        } else {
+          highLimit = random(40, 60);
+          tickerRate = random(1, 2);
+        }
       }
     }
-    buttonCheck(on, brightnessStand);
+
+    // Just changes the tickerDir to false, thus causing the dot to decrease in brightness.
+    void bounceDown(void) {
+      if (ticker >= highLimit) {
+        tickerDir = false;
+      }
+    }
+
+    void increaseBrightness(void) {
+      ticker += tickerRate;
+    }
+
+    void decreaseBrightness(void) {
+      ticker -= tickerRate;
+    }
+
+    void displayDot(void) {
+      strip.setPixelColor(location, ticker / orangeVal, ticker, 0);
+    }
+    
+    bool tickerDir = true;
+    uint8_t location = 0;
+    uint8_t ticker = 0;
+    uint8_t tickerRate = 0;
+    uint8_t highLimit = 0;
+    uint8_t lowLimit = 0;
+    uint8_t orangeVal = 0;
+};
+
+
+void Flame(bool &on, uint8_t &brightnessStand, uint32_t pixelNum) {
+  uint32_t count = 0;
+  uint32_t rate = 10;
+  
+  FlameDot flameArray[LED_COUNT];
+  for(int i = 0; i < LED_COUNT; ++i) {
+    flameArray[i].setLocation(i);
+  }
+
+  while(on) {
+    if(count % rate == 0) {
+      for(int i = 0; i < LED_COUNT; ++i) {
+        flameArray[i].flicker();
+      }
+    }
+    strip.show();
     delay(1);
-    cycle++;
+    count++;
+    buttonCheck(on, brightnessStand);
   }
 }
 
