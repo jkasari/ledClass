@@ -340,6 +340,55 @@ void randomPopNVac(bool on, uint8_t &brightness, uint32_t pixelNum, int DELAY) {
   }
 }
 
+//==============================================================fadeOnOff
+
+void fadeOnOff(uint8_t colorCode, uint8_t fadeRate, uint8_t brightnessMin, uint8_t brightnessMax) {
+
+  if (brightnessMax > 255) {
+    brightnessMax = 255;
+  }
+
+  uint8_t brightness = brightnessMin;
+  led ledToFade(0, colorCode, brightness, true);
+
+  while (brightness < brightnessMax) {
+    for (int i = 0; i < LED_COUNT; ++i) {
+      ledToFade.setLocation(i);
+      ledToFade.setColor(colorCode, brightness);
+    }
+    strip.show();
+    delay(fadeRate);
+    brightness += 5;
+    strip.show();
+  }
+  while (brightness > brightnessMin) {
+    for (int i = 0; i < LED_COUNT; ++i) {
+      ledToFade.setLocation(i);
+      ledToFade.setColor(colorCode, brightness);
+    }
+    strip.show();
+    delay(fadeRate);
+    brightness -= 5;
+    strip.show();
+  }
+}
+
+void startUp(uint32_t colorCode) {
+
+  fadeOnOff(colorCode, 5, 50, 90);
+  fadeOnOff(colorCode, 8, 70, 100);
+  delay(30);
+  fadeOnOff(colorCode, 6, 80, 120);
+  delay(50);
+  fadeOnOff(colorCode, 4, 100, 200);
+  delay(300);
+  fadeOnOff(colorCode, 8, 70, 100);
+  lightAll(colorCode);
+  delay(colorCode);
+  fadeOnOff(colorCode, 3, 100, 255);
+  lightAll(colorCode);
+}
+
 //==============================================================randColorFlicker
 
 // slowly turns on and off leds at a random location and color
@@ -477,54 +526,7 @@ void flickerRandDots(bool &on, uint8_t &brightnessStand, uint32_t numOfDots) {
     buttonCheck(on, brightnessStand);
   }
 }
-//==============================================================fadeOnOff
 
-void fadeOnOff(uint8_t colorCode, uint8_t fadeRate, uint8_t brightnessMin, uint8_t brightnessMax) {
-
-  if (brightnessMax > 255) {
-    brightnessMax = 255;
-  }
-
-  uint8_t brightness = brightnessMin;
-  led ledToFade(0, colorCode, brightness, true);
-
-  while (brightness < brightnessMax) {
-    for (int i = 0; i < LED_COUNT; ++i) {
-      ledToFade.setLocation(i);
-      ledToFade.setColor(colorCode, brightness);
-    }
-    strip.show();
-    delay(fadeRate);
-    brightness += 5;
-    strip.show();
-  }
-  while (brightness > brightnessMin) {
-    for (int i = 0; i < LED_COUNT; ++i) {
-      ledToFade.setLocation(i);
-      ledToFade.setColor(colorCode, brightness);
-    }
-    strip.show();
-    delay(fadeRate);
-    brightness -= 5;
-    strip.show();
-  }
-}
-
-void startUp(uint32_t colorCode) {
-
-  fadeOnOff(colorCode, 5, 50, 90);
-  fadeOnOff(colorCode, 8, 70, 100);
-  delay(30);
-  fadeOnOff(colorCode, 6, 80, 120);
-  delay(50);
-  fadeOnOff(colorCode, 4, 100, 200);
-  delay(300);
-  fadeOnOff(colorCode, 8, 70, 100);
-  lightAll(colorCode);
-  delay(colorCode);
-  fadeOnOff(colorCode, 3, 100, 255);
-  lightAll(colorCode);
-}
 
 //==============================================================Flame
 
@@ -555,7 +557,7 @@ class FlameDot {
     void bounceUp(void) {
       if(ticker <= lowLimit) {
         tickerDir = true;
-        lowLimit = random(15, 35);
+        lowLimit = random(20, 35);
         //This is how many times we are going to divde the red value by. This is not the 8bit RGB value.
         orangeVal = random(4, 8);
         uint8_t hotOrNot = random(100);
@@ -1028,205 +1030,224 @@ void stars(bool &on, uint8_t &brightnessStand) {
 }
 
 
-//==============================================================rainstorm
 
+//==============================================================Heat Dissapate
 
-void rainStormBackground(void) {
-  for (int i = 0; i < LED_COUNT - 1; ++i) {
-    strip.setPixelColor(i, 0, 0, 20);
-  }
-}
+class HeatDrop {
 
-class Drop {
+  public:
 
- public:
-  Drop() {}
- // This causes a ripple effect. It's meant to be used in a loop and called each cycle.
-  void ripple(void);
+    void dissipate(uint8_t valA, uint8_t valB, bool bounce) {
+      uint8_t meanTemp = (valA + valB) / 2;
+      if (!heatingUp) {
+        if (meanTemp > heatVal && heatVal < 250) {
+          heatVal += pow(meanTemp - heatVal, (1/2));
+        } else if (meanTemp < heatVal && heatVal > 1) {
+          heatVal -= pow(heatVal - meanTemp, (1/2));
+        }
+      } else {
+        heatVal += 1;
+      }
+      if (heatVal < 1) {
+        heatVal = 1;
+      }
+      if (heatVal > 250) {
+        heatVal = 250;
+        heatingUp = false;
+      }
+      displayDot(bounce);
+    }
 
-  //Lets you set the center of a |Drop|.
-  void setCenter(uint32_t);
+    uint8_t getHeatVal(void) {
+      return heatVal;
+    }
 
-  //tells you the center of a |Drop|.
-  uint32_t getCenter(void);
+    void setLocation(uint32_t newLocation) {
+      location = newLocation;
+    }
 
-  //Tells distances from the |center| of a |Drop|.
-  uint8_t distanceFrom(void);
+    void heatDotUp(void) {
+      heatingUp = true;
+    }
 
-  //Tells you if a |Drop| is rippling or not.
-  bool isRippling(void);
-
-  //Picks a new random speed for the |Drop|.
-  void setRippleSpeed(void);
-
- private:
-  void increasePhase(uint8_t);
-  void ripplePhase1(void);
-  void ripplePhase2(void);
-  void ripplePhase3(void);
-  void ripplePhase4(void);
-  void ripplePhase5(void);
-  void ripplePhase6(void);
-  void endingPhase(void);
-  uint32_t center;
-  uint8_t rippleState = 30;
-  uint8_t ripplePhase = 0;
-  const uint8_t rippleSpeedFast = 10;
-  const uint8_t rippleSpeedSlow = 4;
-  uint8_t rippleSpeed = random(rippleSpeedSlow, rippleSpeedFast);
-  bool currentlyRippling = true;
-
+  private:
+    bool heatingUp = false;
+    uint8_t heatVal = 1;
+    uint32_t location;
+    void displayDot(bool bounce) {
+      if (bounce) {
+        strip.setPixelColor(location, 0, heatVal, 250 - heatVal);
+      } else {
+      strip.setPixelColor(location, 250 - heatVal, heatVal, 0);
+      }
+    }
 };
 
-void Drop::ripple(void) {
- switch(ripplePhase) {
-   case 0:
-    ripplePhase1();
-    break;
-   case 1:
-    ripplePhase2();
-    break;
-   case 2:
-    ripplePhase3();
-    break;
-   case 3:
-    ripplePhase4();
-    break;
-   case 4:
-    ripplePhase5();
-    break;
-   case 5:
-    ripplePhase6();
-    break;
-   case 6:
-    endingPhase();
-    break;
- }
-}
 
-void Drop::setCenter(uint32_t newCenter) {
-  center = newCenter;
-}
-
-uint32_t Drop::getCenter(void) {
-  return center;
-}
-
-uint8_t Drop::distanceFrom(void) {
-  return 2;
-}
-
-bool Drop::isRippling(void) {
-  return currentlyRippling;
-}
-
-void Drop::setRippleSpeed(void) {
-  rippleSpeed = random(rippleSpeedSlow, rippleSpeedFast);
-}
-
-void Drop::increasePhase(uint8_t stateMax) {
-  if(rippleState >= stateMax) {
-    ripplePhase += 1;
-    rippleState = 30;
-  }
-}
-
-void Drop::ripplePhase1(void){
-  currentlyRippling = true;
-  strip.setPixelColor(center, 0, 0, rippleState);
-  rippleState += rippleSpeed;
-  increasePhase(200);
-}
-
-void Drop::ripplePhase2(void) {
-  strip.setPixelColor(center - 1, rippleState / 2, rippleState / 2, rippleState);
-  strip.setPixelColor(center, 0, 0, 200);
-  strip.setPixelColor(center + 1, rippleState / 2, rippleState / 2, rippleState);
-  rippleState += rippleSpeed;
-  increasePhase(50);
-}
-
-void Drop::ripplePhase3(void) {
-  strip.setPixelColor(center - 1, 25 - rippleState / 2, 25 - rippleState / 2, 50 + rippleState * 2);
-  strip.setPixelColor(center, 0, 0, 200);
-  strip.setPixelColor(center + 1, 25 - rippleState / 2, 25 - rippleState / 2 , 50 + rippleState * 2);
-  rippleState += rippleSpeed;
-  increasePhase(50);
-}
-
-void Drop::ripplePhase4(void) {
-  strip.setPixelColor(center - 1, 0, 0, 150);
-  strip.setPixelColor(center, 0, 0, 200);
-  strip.setPixelColor(center + 1, 0, 0, 150);
-  rippleState += rippleSpeed / 2;
-  increasePhase(50);
-}
-
-void Drop::ripplePhase5(void) {
-  strip.setPixelColor(center - 1, 0, 0, 150 - rippleState);
-  strip.setPixelColor(center, 0, 0, 200 - rippleState);
-  strip.setPixelColor(center + 1, 0, 0, 150 - rippleState);
-  rippleState += rippleSpeed;
-  increasePhase(100);
-}
-
-void Drop::ripplePhase6(void) {
-  strip.setPixelColor(center - 1, 0, 0, 50 - rippleState);
-  strip.setPixelColor(center, 0, 0, 100 - rippleState / 2);
-  strip.setPixelColor(center + 1, 0, 0, 50 - rippleState);
-  rippleState += rippleSpeed / 4;
-  increasePhase(50);
-}
-
-void Drop::endingPhase(void) {
-    if(rippleState == 33) {
-      ripplePhase = 0;
-    }
-    currentlyRippling = false;
-    rippleState += 1;
-}
-
-
-void rainDrops(bool &on, uint8_t &brightnessStand) {
-  uint32_t cycle = 0;
-  uint8_t count = 7;
-  uint8_t dropCount = LED_COUNT / 5;
-  uint32_t newRandLoc;
-  uint32_t locationLower = 2;
-  uint32_t locationUpper = LED_COUNT - 2;
- 
+void heatDiss(bool &on, uint8_t &brightnessStand) {
+  uint32_t cycle = 1;
+  uint8_t count = 8;
+  uint32_t newDotCount = 500;
+  uint8_t valA = 0, valB = 0;
+  bool bounce = false;
   
-  Drop drizzle[dropCount];
-  for(int i = 0; i < dropCount; ++i) {
-    drizzle[i].setCenter(random(LED_COUNT));
+  HeatDrop heatArr[LED_COUNT];
+  for(int i = 0; i < LED_COUNT; ++i) {
+    heatArr[i].setLocation(i);
   }
 
   while(on) {
-    if(cycle % count == 0) {
-      strip.clear();
-      rainStormBackground();
-      for(int i = 0; i < 4; ++i) {
-      drizzle[i].ripple();
-        if(!drizzle[i].isRippling()) {
-          newRandLoc = random(locationLower, locationUpper);
-          // Loop is supposed to stop any drops from starting where a current drop is. 
-          // However it appears not to be working.
-          int y = 0;
-          for(int y = 0; y < dropCount; ++y) {
-            if(newRandLoc > drizzle[y].getCenter() - 3 && drizzle[y].getCenter() + 3 > newRandLoc) {
-               newRandLoc = random(locationLower, locationUpper);
-               y = 0;
-            }
-          }
-          y = 0;
-          drizzle[i].setCenter(newRandLoc);
-          drizzle[i].setRippleSpeed();
+    if (cycle % count == 0) {
+      for(int i = 0; i < LED_COUNT; ++i) {
+        if (i > 0) {
+          valA = heatArr[i - 1].getHeatVal();
+        } else {
+          valA = 100;
         }
+        if(i < LED_COUNT) {
+          valB = heatArr[i + 1].getHeatVal();
+        } else {
+          valB = 100;
+        }
+        heatArr[i].dissipate(valA, valB, bounce);
       }
+    }
+    if (cycle % newDotCount == 0) {
+      uint32_t hotDot = random(LED_COUNT);
+      heatArr[hotDot].heatDotUp();
+      newDotCount = random(3000, 4000);
     }
     buttonCheck(on, brightnessStand);
     strip.show();
     delay(1);
     cycle++;
+  }
+}
+
+
+void heatBounce(bool &on, uint8_t &brightnessStand) {
+  uint32_t cycle = 1;
+  uint8_t count = 4;
+  uint32_t moveOne = 150;
+  uint8_t valA = 0, valB = 0;
+  uint32_t hotDot = 0;
+  bool dir = true;
+  bool bounce = true;
+  
+  HeatDrop heatArr[LED_COUNT];
+  for(int i = 0; i < LED_COUNT; ++i) {
+    heatArr[i].setLocation(i);
+  }
+
+  while(on) {
+    if (cycle % count == 0) {
+      for(int i = 0; i < LED_COUNT; ++i) {
+        if (i > 0) {
+          valA = heatArr[i - 1].getHeatVal();
+        } else {
+          valA = 100;
+        }
+        if(i < LED_COUNT) {
+          valB = heatArr[i + 1].getHeatVal();
+        } else {
+          valB = 100;
+        }
+        heatArr[i].dissipate(valA, valB, bounce);
+      }
+    }
+    if (cycle % moveOne == 0) {
+      if (dir) {
+         hotDot++;
+         if (hotDot == LED_COUNT) {
+          dir = false;
+         }
+       } else {
+         hotDot--;
+         if (hotDot == 0) {
+           dir = true;
+         }
+       }
+       heatArr[hotDot].heatDotUp();
+    }
+    buttonCheck(on, brightnessStand);
+    strip.show();
+    delay(1);
+    cycle++;
+  }
+}
+
+
+//==============================================================Bouncy Ball
+
+
+class Ball {
+  
+ public:
+  // This sends the bouncy ball on it's way. Up down and respawn. 
+  void go(void) {
+    ballCheck();
+    disBall();
+  }
+  
+ private:
+  int32_t t = 0; //time 
+  uint8_t br = 0; //brightness
+  int32_t r = random(1, 10); //rate
+  int32_t bf = random(1, 90); //bounce factor
+  int32_t l = 0; //location
+  bool up = true;
+
+  void ballCheck(void) {
+    if (up && br > 250) {
+      l++;
+      br = 0;
+    } else {
+      l--;
+      br = 0;
+    }
+    if (up && l == LED_COUNT) {
+      bounce();
+      t = 0;
+      up = false;
+    } else {
+      bounce();
+      t = 0; 
+      up = true;
+      if (r <= 0) {
+        delay(500);
+        r = random(1, 10);
+        bf = random(1, 90);
+      }
+    }
+  }
+
+  void bounce(void) {
+     // tb is temporary brightness.
+     uint8_t tb = r - (r * bf) / 10;
+     r = (r * bf) / 100;
+     strip.setPixelColor(l, tb, tb, tb); 
+  }
+
+  void disBall(void) {
+    t++;
+    strip.setPixelColor(l, 250 - br, 250 - br, 250 -br);
+    if (up && l > 0) {
+      br += -.0016 * t + r;
+      strip.setPixelColor(l - 1, br, br, br); 
+    } else if (!up && LED_COUNT > l) {
+      br += .0016 * t + r;
+      strip.setPixelColor(l + 1, br, br, br);
+    }
+  }
+};
+
+void bouncyBall(bool &on, uint8_t &brightnessStand) {
+  Ball bouncyBoi;
+
+  while(on) {
+    bouncyBoi.go();
+    buttonCheck(on, brightnessStand);
+    strip.show();
+    delay(1);
   }
 }
