@@ -58,7 +58,10 @@ void loop() {
   case 7:
     lavaLamp(on, brightnessStand);
     break;
-  case 8:
+  case 8: 
+    bouncyBall(on, brightnessStand);
+    break;
+  case 9:
     heatBounce(on, brightnessStand);
     lightShow = 0;
     break;

@@ -1185,7 +1185,7 @@ class Ball {
  public:
   // This sends the bouncy ball on it's way. Up down and respawn. 
   void go(void) {
-    ballCheck();
+    t++;
     disBall();
   }
   
@@ -1198,6 +1198,9 @@ class Ball {
   bool up = true;
 
   void ballCheck(void) {
+    if (r <= 0 && l != 0) {
+      up = false;
+    }
     if (up && br > 250) {
       l++;
       br = 0;
@@ -1209,7 +1212,7 @@ class Ball {
       bounce();
       t = 0;
       up = false;
-    } else {
+    } else if (up && l == 0) {
       bounce();
       t = 0; 
       up = true;
@@ -1229,14 +1232,14 @@ class Ball {
   }
 
   void disBall(void) {
-    t++;
-    strip.setPixelColor(l, 250 - br, 250 - br, 250 -br);
+    ballCheck();
+    strip.setPixelColor(l, br, br, br);
     if (up && l > 0) {
       br += -.0016 * t + r;
-      strip.setPixelColor(l - 1, br, br, br); 
+      strip.setPixelColor(l - 1, 250 - br, 250 - br, 250 - br); 
     } else if (!up && LED_COUNT > l) {
       br += .0016 * t + r;
-      strip.setPixelColor(l + 1, br, br, br);
+      strip.setPixelColor(l + 1, 250 - br, 250 - br, 250 - br);
     }
   }
 };
