@@ -1,3 +1,4 @@
+
 #include <Adafruit_NeoPixel.h>
 //#ifndef LED
 //#define LED
@@ -623,227 +624,126 @@ void Flame(bool &on, uint8_t &brightnessStand) {
 }
 
 //==============================================================blob
+uint8_t globalTrackVals[LED_COUNT];
 
-#ifndef BLOB
-#define BLOB
+void cleanBlobTrack() {
+  for (int i = 0; i < LED_COUNT; ++i) {
+    globalTrackVals[i] = 0;
+  }
+}
 
-void lavaBackGround(int32_t top) {
-  for (int i = 0; i < LED_COUNT - 1; ++i) {
-    if (i < top) {
-      strip.setPixelColor(i, 0, 150, 0);
+void displayBlobs(uint32_t tail, uint32_t head) {
+  uint32_t index = 4;
+  uint32_t red = strip.Color(0, 255, 0);
+  strip.fill(red, 0, 4);
+  while (index < LED_COUNT) {
+    uint32_t start = index * 255; // start insures that the index lines up with the tail and head.
+    for (int i = start; i < start + 255; ++i) {
+      if (i >= tail && head >= i) {
+        globalTrackVals[index] += 1;
+        if (globalTrackVals[index] >= 255) {
+          globalTrackVals[index] = 255;
+          break;
+        }
+      }
+    }
+    index += 1;
+  }
+}
+
+
+class Blob {
+  
+  public:
+
+  uint32_t getHead() {
+    return head;
+  }
+
+  uint32_t getTail() {
+    return tail;
+  }
+
+  void moveBlob() {
+    // This gives me 0 at 0 and 20 when the head is at the top.
+    // This means a blob needs to be going faster then 20 in order to make it to the top.
+    size_t gravity = (head * head) / 1200000;
+    if (dir) {
+      moveUpTrack(blobSpeed - gravity);
     } else {
-      strip.setPixelColor(i, 0, 20, 0);
+      moveDownTrack(blobSpeed - gravity);
+    }
+    displayBlob();
+  }
+
+  void displayBlob() {
+    for (int i = 0; i < LED_COUNT; ++i) {
+      strip.setPixelColor(i, 0, globalTrackVals[i], 0);
     }
   }
-}
 
-bool atTop(int32_t head) {
-  if (head == LED_COUNT) {
-    return true;
-  } else {
-    return false;
+
+  void moveDownTrack(int32_t distance) {
+    head -= distance;
+    tail -= distance;
+    if (tail <= 0) {
+      resetBlob();
+      setBlobVals();
+    }
   }
-}
 
-bool atBottom(int32_t head) {
-  if (head == -4) {
-    return true;
-  } else {
-    return false;
+  void moveUpTrack(int32_t distance) {
+    if (distance <= 1) {
+      dir = false;
+      return;
+    }
+    head += distance;
+    tail += distance;
+    if (head >= trackSize) {
+      resetBlob();
+    }
   }
-}
 
-uint8_t adjustedCount(uint32_t count, uint32_t head) {
-  // counter is your frame rate, it's value changes each cycle. 0 - infi
-  // count fixed value based on the blob. Needs to be between 2 and 10. 2 being
-  // fastest and 10 being stopped. head ranges from 0 - 19 (LED_COUNT) Updates
-  // more frequent at zero and less frequent at 19.
-  return minOf(13, count + (head * head) / 45);
-}
+  
+  private: 
 
-uint32_t minOf(uint32_t x, uint32_t y) { return x < y ? x : y; }
-
-class blob {
-
-public:
-  blob() {
-    counter = 0;
-    brightness = 20;
-    head = 3;
-    count = 1;
-    state = 0;
+  void resetBlob() {
+    if (dir) {
+      head = trackSize;
+      tail = head - 255;
+      dir = false;
+    } else {
+      head = 255;
+      tail = 0;
+      dir = true;
+    }
   }
-  // Creates a blob out of the following data members.
-  // The |dist| is an internal data member that counts up everytime the blob is
-  // moved. The |head| is the top of blob, and dictates where the rest of the
-  // blob is located. The |count| acts as a delay defore moving a blob. The
-  // |state| is the direction the blob is moving in.
-  blob(int32_t head, uint32_t count, bool state){};
-
-  // Moves a blob across the strip based on preset data members.
-  // Left alone this will just bounce a blob across the strip.
-  moveBlob(int32_t);
-
-  // Lets you set the location of the top of the blob;
-  setHead(int32_t);
-
-  // Gives you the location of the top of the blob.
-  int32_t getHead();
-
-  // This sets the delay for each blobs movement.
-  setCount(uint32_t);
-
-  // Tells you the current |count| of a blob.
-  uint32_t getCount();
-
-  // Sets the direction of a blob.
-  setState(int8_t);
-
-  // Tells you the current direction of a blob.
-  int8_t getState();
-
-private:
-  uint32_t counter;
-  uint32_t brightness;
-  int32_t head;
-  uint32_t count;
-  int8_t state;
+  
+  setBlobVals() {
+    blobSpeed = random(1, 20);
+    head = random(1, 4) * 255;
+  }
+  static const int32_t trackSize = LED_COUNT * 255;
+  int32_t head = random(1, 4) * 255;
+  int32_t tail = 0;
+  int32_t blobSpeed = random(2, 20); 
+  bool dir = true;
 };
 
-#endif
-
-blob::moveBlob(int32_t bottom) {
-  uint8_t baseBrightness = 20;
-  if (counter % adjustedCount(count, head) == 0) {
-    brightness += 2; // Increases the brightness everytime counter matches
-                     // evenly with the count.
-  }
-  counter++;        // Increase the counter every time through the function.
-  if (state == 0) { // If the blob is going up.
-    if (head - 3 > bottom) {
-      strip.setPixelColor(head - 3, 0, 120 - brightness, 0);
-    }
-    if (head - 2 > bottom) {
-      strip.setPixelColor(head - 2, 0, 200 - brightness, 0);
-    }
-    if (head - 1 > bottom) {
-      strip.setPixelColor(head - 1, 0, 100 + brightness, 0);
-    }
-    if (head > bottom) {
-      strip.setPixelColor(head, 0, brightness, 0);
-    }
-    strip.show();
-    if (brightness >= 100) { // If the brightness is at 100 the blob is ready to
-                             // be moved along the strip.
-      brightness = baseBrightness;
-             // Resets brightness for the whole thing to start over again.
-      head++; // Moves the blob up the strip one led.
-    }
-    if (atTop(head) || adjustedCount(count, head) == 13) { // Turns around the blob if its at the top.
-      state = 1;
-      head -= 4;
-    }
-  }
-
-  if (state == 1) {
-    if (head > bottom) {
-      strip.setPixelColor(head, 0, 0, 0);
-    }
-    if (head + 1 > bottom) {
-      strip.setPixelColor(head + 1, 0, 100, 0);
-    }
-    if (head + 2 > bottom) {
-      strip.setPixelColor(head + 2, 0, 200, 0);
-    }
-    if (head + 3 > bottom) {
-      strip.setPixelColor(head + 3, 0, 100, 0);
-    }
-    strip.show();
-    if (brightness >= 200) {
-      brightness = baseBrightness;
-      state = 2;
-    }
-  }
-
-  if (state == 2) { // If the blob is going down.
-    if (head > bottom) {
-      strip.setPixelColor(head, 0, brightness, 0);
-    }
-    if (head + 1 > bottom) {
-      strip.setPixelColor(head + 1, 0, 100 + brightness, 0);
-    }
-    if (head + 2 > bottom) {
-      strip.setPixelColor(head + 2, 0, 200 - brightness, 0);
-    }
-    if (head + 3 > bottom) {
-      strip.setPixelColor(head + 3, 0, 120 - brightness, 0);
-    }
-    strip.show();
-    if (brightness >= 100) {
-      brightness = baseBrightness;
-      head--; // Moves the blob down one led.
-    }
-    if (atBottom(head)) { // Turns the blob around if its at the bottom.
-      state = 0;
-      head = 0;
-    }
-  }
-}
-
-blob::setHead(int32_t newHead) {
-  if (!state && newHead > LED_COUNT - 4) {
-    newHead = LED_COUNT - 4;
-    return;
-  }
-  if (state && newHead < 3) {
-    newHead = 3;
-    return;
-  }
-  head = newHead;
-}
-
-int32_t blob::getHead(void) { return head; }
-
-blob::setCount(uint32_t newCount) { count = newCount; }
-
-uint32_t blob::getCount() { return count; }
-
-blob::setState(int8_t newState) { state = newState; }
-
-int8_t blob::getState() { return state; }
-
 void lavaLamp(bool &on, uint8_t &brightnessStand) {
-  int8_t randNumBottom = 6;
-  int8_t randNumbTop = 12;
-  int32_t topOfGlob = 3;
-  blob blob1;
-  blob blob2;
-  blob blob3;
-  blob1.setCount(random(randNumBottom, randNumbTop));
-  blob2.setCount(random(randNumBottom, randNumbTop));
-  blob3.setCount(random(randNumBottom, randNumbTop));
-  blob2.setHead(random(LED_COUNT));
-  blob3.setHead(random(LED_COUNT));
-
-  while (on) {
-    if (atTop(blob1.getHead()) || atBottom(blob1.getHead())) {
-      blob1.setCount(random(randNumBottom, randNumbTop));
+  uint32_t blobArrSize = 4;
+  Blob blobArr[blobArrSize];
+  while(on) {
+    cleanBlobTrack();
+    for (int i = 0; i < blobArrSize; ++i) {
+      blobArr[i].moveBlob();
+      displayBlobs(blobArr[i].getTail(), blobArr[i].getHead());
     }
-    if (atTop(blob2.getHead()) || atBottom(blob2.getHead())) {
-      blob2.setCount(random(randNumBottom, randNumbTop));
-    }
-    if (atTop(blob3.getHead()) || atBottom(blob3.getHead())) {
-      blob3.setCount(random(randNumBottom, randNumbTop));
-    }
-    lavaBackGround(topOfGlob);
-    blob1.moveBlob(topOfGlob);
-    blob2.moveBlob(topOfGlob);
-    blob3.moveBlob(topOfGlob);
     buttonCheck(on, brightnessStand);
-    strip.clear();
+    strip.show();
+    delay(1);
   }
 }
-
 //==============================================================randColorFade
 
 void randColorFade(bool &on, uint8_t &brightnessStand) {
@@ -910,126 +810,103 @@ void randColorFade(bool &on, uint8_t &brightnessStand) {
 
 //==============================================================stars
 
-void cometTail(led cometHead, int32_t cometSize) {
-  led ledCometTail[cometSize];
-  uint8_t prevBright = 255;
-  int32_t prevLoc = cometHead.getLocation();
-  for (int i = 0; i < cometSize; ++i) {
-    ledCometTail[i].setColor(0, prevBright / 2);
-    ledCometTail[i].setLocation(prevLoc);
-    if (cometHead.getBrightnessDir()) {
-      prevLoc--;
-      ledCometTail[i].setLocation(prevLoc);
-    } else {
-      prevLoc++;
-      ledCometTail[i].setLocation(prevLoc);
+
+
+/*==============================================================stars
+ * 
+ * This used the StarDot class to do basically exatly the same thing as the flame function in white.
+ * This time instead of all the dots being lit, each time the function is called it picks a random pattern and sticks to it.
+ */
+
+class StarDot {
+
+  public:
+    
+    setLocation(uint32_t setLocation) {
+      location = setLocation;
+      bounceUp();
     }
-    prevBright = prevBright / 2;
-  }
-}
+
+    void flicker(void) {
+      // This moves each led up and down in it's brightness values.
+      if (tickerDir) {
+        increaseBrightness();
+        bounceDown();
+      } else {
+        decreaseBrightness();
+        bounceUp();
+      }
+      displayDot();
+    }
+    
+
+  private:
+    void bounceUp(void) {
+      if(ticker <= lowLimit) {
+        tickerDir = true;
+        lowLimit = random(20, 30);
+        uint8_t yesTwinkle = random(50);
+        if (yesTwinkle <= 1) { // This creates a 2 in 50 chance of a StarDot getting brighter then the others.
+          highLimit = random(150, 250); // It gets a new higher high limit if that is the case.
+          tickerRate = random(1, 2);
+        } else {
+          highLimit = random(30, 60); // Other wise it gets a lower hight limit
+          tickerRate = random(1, 2);
+        }
+      }
+    }
+
+    void bounceDown(void) {
+      if (ticker >= highLimit) {
+        tickerDir = false;
+      }
+    }
+
+    void increaseBrightness(void) {
+      ticker += tickerRate;
+    }
+
+    void decreaseBrightness(void) {
+      ticker -= tickerRate;
+    }
+
+    void displayDot(void) {
+      strip.setPixelColor(location, ticker * 7 / 16, (ticker * 7 /16),
+                        ticker / 2);
+    }
+    
+    bool tickerDir;
+    uint8_t ticker = 0;
+    uint8_t tickerRate = 0;
+    uint8_t lowLimit = 0;
+    uint8_t highLimit = 0;
+    uint32_t location = 0;
+};
 
 void stars(bool &on, uint8_t &brightnessStand) {
-  uint32_t cycle = 0;
-  int32_t count = 35;
-  uint8_t highPeakTop = 200;
-  uint8_t highPeakBottom = 100;
-  uint8_t lowPeakTop = 90;
-  uint8_t lowPeakBottom = 80;
-  uint8_t valleyTop = 50;
-  uint8_t valleyBottom = 40;
-  uint8_t twinkleStar1 = 1;
-  uint8_t twinkleStar2 = 2;
-  int8_t ledArrSize = (LED_COUNT / 2);
-  uint32_t cometCount = 255;
-  int32_t cometClock = 0;
-  int32_t cometHeadLoc = random(8, 13);
-  int8_t cometDuration = 6;
-  led cometHead(cometHeadLoc, 5, 155, random(2));
-
-  led ledArr[ledArrSize];
+  uint32_t count = 0;
+  uint8_t rate = 22;
+  uint32_t numOfStars = LED_COUNT * 3 / 5;
+  StarDot starArr[numOfStars];
   uint32_t randomArr[LED_COUNT];
   randomArrMaker(LED_COUNT, randomArr);
 
-  for (int i = 0; i < ledArrSize; ++i) {
-    ledArr[i].setColor(0, random(valleyBottom, lowPeakTop));
-    ledArr[i].setLocation(randomArr[i]);
-    ledArr[i].setBrightnessDir(random(2));
+  for (int i = 0; i < numOfStars; ++i) {
+    starArr[i].setLocation(randomArr[i]);
   }
 
-  while (on) {
-    if (cycle % count == 1) {
-      strip.clear();
-      for (int i = 0; i < ledArrSize; ++i) {
-        if (ledArr[i].getBrightnessDir()) {
-          if (i == twinkleStar1) {
-            ledArr[i].increaseBrightness(8);
-              if (ledArr[i].getBrightness() >= random(highPeakBottom, highPeakTop)) {
-                ledArr[i].setBrightnessDir(false);
-              }
-            } else if (i == twinkleStar2) {
-            ledArr[i].increaseBrightness(10);
-              if (ledArr[i].getBrightness() >= random(highPeakBottom, highPeakTop)) {
-                ledArr[i].setBrightnessDir(false);
-              }
-            } else {
-            ledArr[i].increaseBrightness(1);
-            if (ledArr[i].getBrightness() >= random(lowPeakBottom, lowPeakTop)) {
-              ledArr[i].setBrightnessDir(false);
-            }
-          }
-        } else {
-          if (i == twinkleStar1) {
-            ledArr[i].decreaseBrightness(8);
-            if (ledArr[i].getBrightness() <= random(valleyBottom, valleyTop)) {
-              ledArr[i].setBrightnessDir(true);
-              twinkleStar1 = random(ledArrSize);
-            }
-          } else if (i == twinkleStar2) {
-            ledArr[i].decreaseBrightness(10);
-            if (ledArr[i].getBrightness() <= random(valleyBottom, valleyTop)) {
-              ledArr[i].setBrightnessDir(true);
-              twinkleStar2 = random(ledArrSize);
-            } 
-          } else {
-            ledArr[i].decreaseBrightness(1);
-            if (ledArr[i].getBrightness() <= random(valleyBottom, valleyTop)) {
-              ledArr[i].setBrightnessDir(true);
-            }
-          }
-        }
+  while(on) {
+    if(count % rate == 0) {
+      for(int i = 0; i < LED_COUNT; ++i) {
+        starArr[i].flicker();
       }
-      
-      if (cycle % cometCount == 1) {
-        cometClock++;
-        cometHead.setLocation(cometHeadLoc);
-        cometTail(cometHead, cometDuration);
-        cometCount = count;
-        if (cometHead.getBrightnessDir()) {
-          cometHeadLoc++;
-        } else {
-          cometHeadLoc--;
-        }
-        if (cometClock == cometDuration) {
-          cometCount = random(800, 1300);
-          cometClock = 0;
-          cometDuration = random(4, 8);
-          cometHead.setBrightnessDir(random(2));
-          if (cometHead.getBrightnessDir()) {
-            cometHeadLoc = random(2, 8);
-          } else {
-            cometHeadLoc = random(LED_COUNT - 8, LED_COUNT - 2);
-          }
-        }
-      }
-    }
+    } 
     buttonCheck(on, brightnessStand);
     strip.show();
     delay(1);
-    cycle++;
+    count++;
   }
 }
-
-
 
 //==============================================================Heat Dissapate
 
@@ -1180,75 +1057,119 @@ void heatBounce(bool &on, uint8_t &brightnessStand) {
 //==============================================================Bouncy Ball
 
 
+
 class Ball {
   
- public:
-  // This sends the bouncy ball on it's way. Up down and respawn. 
-  void go(void) {
-    t++;
-    disBall();
+  public:
+
+  void moveBall() {
+    timer++;
+    if (dir) {;
+      moveUpTrack(calcRateUp());
+    } else {
+      moveDownTrack(calcRateDown());
+    }
+    displayBall();
   }
   
- private:
-  int32_t t = 0; //time 
-  uint8_t br = 0; //brightness
-  int32_t r = random(1, 10); //rate
-  int32_t bf = random(1, 90); //bounce factor
-  int32_t l = 0; //location
-  bool up = true;
+  private: 
 
-  void ballCheck(void) {
-    if (r <= 0 && l != 0) {
-      up = false;
+  size_t calcRateUp() {
+    return 2*-timer + velocity;
+  }
+
+  size_t calcRateDown() {
+    return timer + velocity;
+  }
+
+  void moveDownTrack(int32_t distance) {
+    head -= distance;
+    tail -= distance;
+    if (tail <= 0) {
+      resetBall(255);
     }
-    if (up && br > 250) {
-      l++;
-      br = 0;
+  }
+
+  void moveUpTrack(int32_t distance) {
+    if (distance <= 1) {
+      resetBall(head);
+      return;
+    }
+    head += distance;
+    tail += distance;
+    if (head >= trackSize) {
+      resetBall(trackSize);
+    }
+  }
+
+  void resetBall(uint32_t headLocation) {
+    dir = !dir;
+    head = headLocation;
+    tail = head - 255;
+    timer = 0;
+    if (headLocation == LED_COUNT || headLocation == 255) {
+      bounce();
+    }
+    if (velocity == 0) {
+      Serial.println("stuck");
+      Serial.print('\n');
+      velocity = random(35,200);
+      bouncy = random(10,30);
+      strip.setPixelColor(0, 255, 0, 255);
+      strip.show();
+      delay(1000);
+    }
+  }
+
+  void bounce() {
+    if (dir) {
+      velocity -= bouncy;
     } else {
-      l--;
-      br = 0;
+      velocity = 2*-timer + velocity;
+      //velocity -= bouncy;
     }
-    if (up && l == LED_COUNT) {
-      bounce();
-      t = 0;
-      up = false;
-    } else if (up && l == 0) {
-      bounce();
-      t = 0; 
-      up = true;
-      if (r <= 0) {
-        delay(500);
-        r = random(1, 10);
-        bf = random(1, 90);
+    if (velocity <= 0) {
+      velocity = 0;
+    }
+  }
+
+  void displayBall() {
+    for (int i = 0; i < LED_COUNT; ++i) {
+      trackVals[i] = 0; // reset the track values so it doesn't just light the whole strip
+    }
+    uint32_t index = 0;
+    while (index < LED_COUNT) {
+      uint32_t start = index * 255; // start insures that the index lines up with the tail and head.
+      for (int i = start; i < start + 255; ++i) {
+        if (i >= tail && head >= i) {
+          trackVals[index] += 1;
+          if (trackVals[index] >= 255) {
+            trackVals[index] = 255;
+            break;
+          }
+        }
       }
+      index += 1;
+    }
+    for (int i = 0; i < LED_COUNT; ++i) {
+      strip.setPixelColor(i, trackVals[i], 0, trackVals[i]);
     }
   }
-
-  void bounce(void) {
-     // tb is temporary brightness.
-     uint8_t tb = r - (r * bf) / 10;
-     r = (r * bf) / 100;
-     strip.setPixelColor(l, tb, tb, tb); 
-  }
-
-  void disBall(void) {
-    ballCheck();
-    strip.setPixelColor(l, br, br, br);
-    if (up && l > 0) {
-      br += -.0016 * t + r;
-      strip.setPixelColor(l - 1, 250 - br, 250 - br, 250 - br); 
-    } else if (!up && LED_COUNT > l) {
-      br += .0016 * t + r;
-      strip.setPixelColor(l + 1, 250 - br, 250 - br, 250 - br);
-    }
-  }
+  
+  static const int32_t trackSize = LED_COUNT * 255;
+  uint8_t trackVals[LED_COUNT];
+  int32_t head = 255;
+  int32_t tail = 0;
+  int32_t velocity= random(35,200);
+  int8_t bouncy = random(10, 30);
+  size_t timer = 0; 
+  bool dir = true;
 };
 
 void bouncyBall(bool &on, uint8_t &brightnessStand) {
-  Ball bouncyBoi;
-
+  Ball bouncyBoy;
   while(on) {
-    bouncyBoi.go();
+    bouncyBoy.moveBall();
     buttonCheck(on, brightnessStand);
     strip.show();
     delay(1);

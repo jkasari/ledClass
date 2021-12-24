@@ -50,7 +50,7 @@ void loop() {
     heatDiss(on, brightnessStand);
     break;
   case 5:
-    randColorFade(on, brightnessStand);
+    bouncyBall(on, brightnessStand);
     break;
   case 6:
     stars(on, brightnessStand);
@@ -59,7 +59,7 @@ void loop() {
     lavaLamp(on, brightnessStand);
     break;
   case 8: 
-    bouncyBall(on, brightnessStand);
+    randColorFade(on, brightnessStand);
     break;
   case 9:
     heatBounce(on, brightnessStand);
