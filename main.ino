@@ -47,17 +47,22 @@ void loop() {
     Flame(on, brightnessStand);
     break;
   case 4:
-    lavaLamp(on, brightnessStand);
+    heatDiss(on, brightnessStand);
     break;
   case 5:
-    randColorFade(on, brightnessStand);
+    bouncyBall(on, brightnessStand);
     break;
   case 6:
     stars(on, brightnessStand);
     break;
   case 7:
-    //underConstruction
-    rainDrops(on, brightnessStand);
+    lavaLamp(on, brightnessStand);
+    break;
+  case 8: 
+    randColorFade(on, brightnessStand);
+    break;
+  case 9:
+    heatBounce(on, brightnessStand);
     lightShow = 0;
     break;
   }
