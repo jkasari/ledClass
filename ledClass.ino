@@ -3,7 +3,7 @@
 //#ifndef LED
 //#define LED
 #define LED_PIN 6
-#define LED_COUNT 20
+#define LED_COUNT 42
 
 int buttonState = 0;
 const uint8_t button1 = 9;
@@ -267,7 +267,7 @@ void lightAll(uint8_t colorCode) {
   led ledToLight;
   ledToLight.setColor(colorCode, 255);
   ledToLight.ledUpdate();
-  for (int i = 0; i < 20; ++i) {
+  for (int i = 0; i < LED_COUNT; ++i) {
     ledToLight.setLocation(i);
     strip.show();
   }
@@ -275,7 +275,7 @@ void lightAll(uint8_t colorCode) {
 
 // does the same thing but with a color code
 void lightAll(uint8_t g, uint8_t r, uint8_t b) {
-  for (int i = 0; i < 20; ++i) {
+  for (int i = 0; i < LED_COUNT; ++i) {
     strip.setPixelColor(i, g, r, b);
     strip.show();
   }
@@ -288,7 +288,7 @@ void lightAll(bool &on, uint8_t &brightness, uint8_t colorCode) {
   ledToLight.setColor(colorCode, 255);
   ledToLight.ledUpdate();
   while (on) {
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < LED_COUNT; ++i) {
       ledToLight.setLocation(i);
       strip.show();
     }
@@ -720,13 +720,13 @@ class Blob {
   }
   
   setBlobVals() {
-    blobSpeed = random(1, 20);
+    blobSpeed = random(20, 90);
     head = random(1, 4) * 255;
   }
   static const int32_t trackSize = LED_COUNT * 255;
   int32_t head = random(1, 4) * 255;
   int32_t tail = 0;
-  int32_t blobSpeed = random(2, 20); 
+  int32_t blobSpeed = random(20, 90); 
   bool dir = true;
 };
 
@@ -1111,10 +1111,8 @@ class Ball {
       bounce();
     }
     if (velocity == 0) {
-      Serial.println("stuck");
-      Serial.print('\n');
-      velocity = random(35,200);
-      bouncy = random(10,30);
+      velocity = random(100, 500);
+      bouncy = random(40,90);
       strip.setPixelColor(0, 255, 0, 255);
       strip.show();
       delay(1000);
@@ -1160,8 +1158,8 @@ class Ball {
   uint8_t trackVals[LED_COUNT];
   int32_t head = 255;
   int32_t tail = 0;
-  int32_t velocity= random(35,200);
-  int8_t bouncy = random(10, 30);
+  int32_t velocity= random(100, 500);
+  int8_t bouncy = random(40, 90);
   size_t timer = 0; 
   bool dir = true;
 };
