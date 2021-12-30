@@ -41,7 +41,7 @@ void loop() {
   case 2:
     // Number of leds to randomly flicker, not the size of the area you want
     // them in.
-    flickerRandDots(on, brightnessStand, LED_COUNT / 2);
+    flickerRandDots(on, brightnessStand, LED_COUNT / 3);
     break;
   case 3:
     Flame(on, brightnessStand);

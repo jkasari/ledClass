@@ -445,9 +445,10 @@ class randDot {
 
     // Finds a new color for a |randDot|.
     void changeColor(void) {
-      red = random(255);
-      green - random(255);
-      blue = random(255);
+      uint32_t tempColor = random(16777216);
+      red = tempColor >> 16;
+      green = tempColor >> 8;
+      blue = tempColor >> 0;
     }
 
     // Increases the brightness of a |randDot|.
