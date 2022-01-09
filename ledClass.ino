@@ -409,9 +409,9 @@ class randDot {
       }
       strip.setPixelColor(
         location,
-        red * brightness / 255,
-        green * brightness / 255,
-        blue * brightness / 255
+        colorArr[0] * brightness / 255,
+        colorArr[1] * brightness / 255,
+        colorArr[2] * brightness / 255
       );
       if (brightness > 250) {
         fadeDir = false;
@@ -445,10 +445,11 @@ class randDot {
 
     // Finds a new color for a |randDot|.
     void changeColor(void) {
-      uint32_t tempColor = random(16777216);
-      red = tempColor >> 16;
-      green = tempColor >> 8;
-      blue = tempColor >> 0;
+      for (int i = 0; i < 3; ++i) {
+        colorArr[i] = 0;
+      }
+      colorArr[random(3)] = random(255);
+      colorArr[random(3)] = random(255);
     }
 
     // Increases the brightness of a |randDot|.
@@ -469,9 +470,7 @@ class randDot {
   
     bool readyToMove = false;
     bool fadeDir = true;
-    uint8_t red = random(255);
-    uint8_t green = random(255);
-    uint8_t blue = random(255);
+    uint8_t colorArr[3];
     uint8_t brightness = 0;
     uint8_t fadeRate = random(5);
     uint32_t location = 0;
